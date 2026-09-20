@@ -43,6 +43,7 @@ Score guidelines:
 
 Set sufficient=True only if score >= 0.70.
 In missing_information, state SPECIFICALLY what is absent (empty string if sufficient).
+Respond in valid JSON format matching the schema with "sufficient", "score", "reason", and "missing_information" keys.
 """
 
 GRADER_HUMAN = """Question: {question}

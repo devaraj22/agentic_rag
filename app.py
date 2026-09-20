@@ -140,17 +140,23 @@ st.markdown(
 )
 
 # ── 6. HEADER ────────────────────────────────────────────────────────────────
-col_title, col_status = st.columns([4, 1])
+col_title, col_provider, col_status = st.columns([3, 1, 1])
 with col_title:
     st.title("🔬 Agentic RAG Research Assistant")
-    st.caption("LangGraph · LlamaIndex · ChromaDB · Ollama · Tavily / DuckDuckGo")
+    st.caption("LangGraph · LlamaIndex · ChromaDB · Groq / Ollama · Tavily / DuckDuckGo")
+with col_provider:
+    groq_active = bool(os.getenv("GROQ_API_KEY")) and os.getenv("LLM_PROVIDER", "groq") == "groq"
+    if groq_active:
+        st.metric("LLM Engine", "⚡ Groq Cloud")
+    else:
+        st.metric("LLM Engine", "💻 Ollama (3B)")
 with col_status:
     tavily_key = os.getenv("TAVILY_API_KEY", "")
     tavily_ok = bool(tavily_key and not tavily_key.startswith("tvly-your-key-here") and len(tavily_key) > 10)
     if tavily_ok:
         st.metric("Web Search", "✅ Tavily")
     else:
-        st.metric("Web Search", "🌐 DuckDuckGo (Free)")
+        st.metric("Web Search", "🌐 DuckDuckGo")
 
 # ── 7. SESSION STATE ──────────────────────────────────────────────────────────
 if "chat_history" not in st.session_state:
@@ -213,11 +219,26 @@ with st.sidebar:
         st.warning("No PDF indexed yet (Web search will be used).")
 
     st.divider()
-    st.subheader("⚡ Performance")
+    st.subheader("⚡ Performance & LLM Engine")
+
+    groq_available = bool(os.getenv("GROQ_API_KEY"))
+    provider_options = ["⚡ Groq Cloud (~1.5s Ultra Fast)", "💻 Ollama Local (llama3.2:3b ~4s)"] if groq_available else ["💻 Ollama Local (llama3.2:3b ~4s)"]
+
+    selected_provider = st.radio(
+        "Inference Engine:",
+        provider_options,
+        index=0 if os.getenv("LLM_PROVIDER", "groq") == "groq" else (len(provider_options) - 1),
+        help="Groq Cloud runs at 300+ tokens/sec. Ollama Local runs on your laptop GPU.",
+    )
+    if "Groq" in selected_provider:
+        os.environ["LLM_PROVIDER"] = "groq"
+    else:
+        os.environ["LLM_PROVIDER"] = "ollama"
+
     fast_mode = st.toggle(
         "⚡ Fast Mode",
         value=True,
-        help="Skips slow intermediate LLM evaluations when queries and evidence are high-confidence. Recommended for laptop GPUs (RTX 2050).",
+        help="Skips slow intermediate LLM evaluations when queries and evidence are high-confidence.",
     )
 
     st.divider()
@@ -300,6 +321,8 @@ if prompt := st.chat_input("Ask anything — about your document or the web…")
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
+        response = None
+        t_elapsed = 0.0
         with st.status("🚀 Running agentic pipeline…", expanded=True) as status_box:
             try:
                 import time
@@ -313,35 +336,38 @@ if prompt := st.chat_input("Ask anything — about your document or the web…")
                 )
                 t_elapsed = round(time.time() - t_start, 1)
                 status_box.update(label=f"✅ Finished in {t_elapsed}s", state="complete", expanded=False)
-
-                answer    = response.get("answer", "No answer generated.")
-                citations = response.get("citations", [])
-                meta      = response.get("metadata", {})
-                meta["elapsed_s"] = t_elapsed
-                route     = meta.get("route", "")
-                score     = meta.get("evidence_score", 0.0)
-                retries   = meta.get("retry_count", 0)
-
-                st.markdown(answer)
-                st.markdown(_route_badge(route), unsafe_allow_html=True)
-                st.markdown(_evidence_bar(score), unsafe_allow_html=True)
-                st.caption(f"⏱️ Generated in **{t_elapsed}s**")
-                if retries:
-                    st.caption(f"🔄 Search automatically retried {retries}×")
-
-                if citations:
-                    with st.expander(f"📚 Sources ({len(citations)})", expanded=False):
-                        _render_citations(citations)
-
-                st.session_state.chat_history.append({
-                    "role": "assistant",
-                    "content": answer,
-                    "citations": citations,
-                    "metadata": meta,
-                })
-
             except Exception as exc:
                 err_msg = f"⚠️ An error occurred: {exc}"
+                status_box.update(label="❌ Error", state="error", expanded=False)
                 st.error(err_msg)
                 logger.error("app.py error: %s", exc, exc_info=True)
-                st.session_state.chat_history.append({"role": "assistant", "content": err_msg})
+                response = {"answer": err_msg, "citations": [], "metadata": {}}
+
+        if response:
+            answer    = response.get("answer", "No answer generated.")
+            citations = response.get("citations", [])
+            meta      = response.get("metadata", {})
+            meta["elapsed_s"] = t_elapsed
+            route     = meta.get("route", "")
+            score     = meta.get("evidence_score", 0.0)
+            retries   = meta.get("retry_count", 0)
+
+            st.markdown(answer)
+            if route:
+                st.markdown(_route_badge(route), unsafe_allow_html=True)
+                st.markdown(_evidence_bar(score), unsafe_allow_html=True)
+            if t_elapsed:
+                st.caption(f"⏱️ Generated in **{t_elapsed}s**")
+            if retries:
+                st.caption(f"🔄 Search automatically retried {retries}×")
+
+            if citations:
+                with st.expander(f"📚 Sources ({len(citations)})", expanded=False):
+                    _render_citations(citations)
+
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": answer,
+                "citations": citations,
+                "metadata": meta,
+            })

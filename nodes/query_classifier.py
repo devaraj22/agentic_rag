@@ -39,8 +39,8 @@ HYBRID    – The question requires BOTH the uploaded document AND current web i
 Rules:
 - If the user references "the document", "the PDF", "the paper", "this file", lean toward PDF_ONLY or HYBRID.
 - If the user asks about "latest", "current", "recent", "today", "this week", lean toward WEB_ONLY or HYBRID.
-- When in doubt between PDF_ONLY and HYBRID, choose HYBRID to be safe.
 - Always return a concise one-sentence reason.
+- Respond in valid JSON format matching the schema with "route" and "reason" keys.
 """
 
 CLASSIFIER_HUMAN = "Question: {question}"
