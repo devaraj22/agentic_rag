@@ -1,0 +1,36 @@
+# ── Core (original — unchanged) ──────────────────────────────────────────────
+streamlit==1.40.0
+pypdf==4.0.1
+python-dotenv==1.0.0
+chromadb
+
+# LlamaIndex stack (original — unchanged)
+llama-index
+llama-index-llms-ollama
+llama-index-embeddings-ollama
+llama-index-vector-stores-chroma
+llama-index-readers-file
+
+# ── Search tools ─────────────────────────────────────────────────────────────
+ddgs
+
+# ── LangChain + LangGraph (NEW) ───────────────────────────────────────────────
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+langchain-ollama>=0.2.0
+langgraph>=0.2.0
+
+# ── Tavily web search (NEW) ───────────────────────────────────────────────────
+langchain-tavily>=0.1.0
+tavily-python>=0.3.0
+
+# ── Pydantic / typing ─────────────────────────────────────────────────────────
+pydantic>=2.0.0
+typing-extensions>=4.9.0
+
+# ── Removed from original (no longer needed) ─────────────────────────────────
+# langchain-google-genai, google-generativeai → replaced by Ollama
+# faiss-cpu → ChromaDB used instead
+# torch / transformers / sentence-transformers / huggingface-hub
+#   → only needed for local HF embeddings; nomic-embed-text runs via Ollama
