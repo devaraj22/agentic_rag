@@ -1,6 +1,6 @@
 # ── Core (original — unchanged) ──────────────────────────────────────────────
 streamlit==1.40.0
-pypdf==4.0.1
+pypdf==6.16.1
 python-dotenv==1.0.0
 chromadb
 
